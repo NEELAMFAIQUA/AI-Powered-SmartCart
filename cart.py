@@ -1,5 +1,8 @@
 """Small sample product catalog and in-memory cart rules."""
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
 PRODUCTS = [
     {"id": "beans", "name": "Ground coffee", "category": "Pantry", "price": 9.50, "stock": 8, "tags": ["coffee", "breakfast"]},
     {"id": "tea", "name": "Green tea", "category": "Pantry", "price": 6.00, "stock": 12, "tags": ["tea", "breakfast"]},
@@ -43,11 +46,23 @@ def subtotal(cart):
 
 def recommend(cart, limit=3):
     selected = {p["id"] for p in PRODUCTS if cart.get(p["id"], 0) > 0}
-    tags = {tag for p in PRODUCTS if p["id"] in selected for tag in p["tags"]}
-    ranked = [
-        (len(tags.intersection(p["tags"])), index, p)
-        for index, p in enumerate(PRODUCTS)
-        if p["id"] not in selected and tags.intersection(p["tags"])
+    if not selected or limit < 1:
+        return []
+    descriptions = [
+        f"{p['name']} {p['category']} {' '.join(p['tags'])}" for p in PRODUCTS
     ]
-    ranked.sort(key=lambda item: (-item[0], item[1]))
-    return [row[2] for row in ranked[:limit]]
+    vectors = TfidfVectorizer(stop_words="english").fit_transform(descriptions)
+    selected_indices = [
+        index for index, product in enumerate(PRODUCTS)
+        if product["id"] in selected
+    ]
+    scores = cosine_similarity(vectors[selected_indices], vectors).mean(axis=0)
+    ranked = sorted(
+        (
+            (float(scores[index]), index, product)
+            for index, product in enumerate(PRODUCTS)
+            if product["id"] not in selected
+        ),
+        key=lambda row: (-row[0], row[1]),
+    )
+    return [product for score, _, product in ranked[:limit] if score > 0]

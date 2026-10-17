@@ -1,7 +1,8 @@
 # SmartCart Demo
 
-An original sample shopping cart with stock-aware quantities and transparent
-tag-based related-product suggestions. No checkout or payment processing.
+An original sample shopping cart with stock-aware quantities and TF-IDF
+content-based related-product recommendations. No checkout or payment
+processing.
 
 ## Run
 
